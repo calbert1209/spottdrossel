@@ -1,66 +1,107 @@
 import { fetchRemoteFile } from "./fetch.js";
 
+function captureBaseJsPath(html) {
+  const matches = html.match(
+    /\/s\/player\/[A-Za-z0-9]+\/[A-Za-z0-9_.]+\/[A-Za-z0-9_]+\/base\.js/
+  );
+
+  return matches?.[0] ?? null;
+}
+
+function findDecodeFunction(jsContent) {
+  const matches = jsContent.match(/function.*\.split\(\"\"\).*\.join\(\"\"\)}/);
+
+  return matches?.[0] ?? null;
+}
+
+function findVariableName(jsContent) {
+  const matches = jsContent.match(/\.split\(\"\"\);([a-zA-Z0-9]+)\./);
+  return matches?.[1] ?? null;
+}
+
+function findVariableDeclaration(jsContent, variableName) {
+  const startIndex = jsContent.indexOf(`var ${variableName}={`);
+  if (startIndex < 0) return null;
+
+  const endIndex = jsContent.indexOf("}};", startIndex);
+  if (endIndex < 0) return null;
+
+  return jsContent.substring(startIndex, endIndex + 3) || null;
+}
+
+function parseSignatureCipherParams(cipher) {
+  const params = new URLSearchParams(cipher);
+  const asObject = Object.fromEntries(params);
+  return {
+    signature: asObject.s,
+    signatureParam: asObject.sp ?? "signature",
+    url: asObject.url,
+  };
+}
+
+function decodeUriReadySignature({
+  variableDeclaration,
+  decodeFnText,
+  signature,
+}) {
+  const decodedSignature = new Function(`
+    "use strict";
+    ${variableDeclaration}
+    return (${decodeFnText})("${signature}");
+  `)();
+  return encodeURIComponent(decodedSignature);
+}
+
+export const testableFunctions = {
+  captureBaseJsPath,
+  findDecodeFunction,
+  findVariableName,
+  findVariableDeclaration,
+  parseSignatureCipherParams,
+  decodeUriReadySignature,
+};
+
 export async function buildDecoder(watchHtml) {
   if (!watchHtml) {
     return null;
   }
 
-  let jsFileUrlMatches = watchHtml.match(
-    /\/s\/player\/[A-Za-z0-9]+\/[A-Za-z0-9_.]+\/[A-Za-z0-9_]+\/base\.js/
+  const jsFilePath = captureBaseJsPath(watchHtml);
+  if (!jsFilePath) {
+    return null;
+  }
+
+  const jsFileContent = await fetchRemoteFile(
+    `https://www.youtube.com${jsFilePath}`
   );
 
-  if (!jsFileUrlMatches) {
+  const decodeFunction = findDecodeFunction(jsFileContent);
+  if (decodeFunction === null) {
     return null;
   }
 
-  let jsFileContent = await fetchRemoteFile(
-    `https://www.youtube.com${jsFileUrlMatches[0]}`
+  const variableName = findVariableName(decodeFunction);
+  if (!variableName) {
+    return null;
+  }
+
+  const variableDeclaration = findVariableDeclaration(
+    jsFileContent,
+    variableName
   );
-
-  let decodeFunctionMatches = jsFileContent.match(
-    /function.*\.split\(\"\"\).*\.join\(\"\"\)}/
-  );
-
-  if (!decodeFunctionMatches) {
-    return null;
-  }
-
-  let decodeFunction = decodeFunctionMatches[0];
-
-  let varNameMatches = decodeFunction.match(/\.split\(\"\"\);([a-zA-Z0-9]+)\./);
-
-  if (!varNameMatches) {
-    return null;
-  }
-
-  let varStartIndex = jsFileContent.indexOf(`var ${varNameMatches[1]}={`);
-  if (varStartIndex < 0) {
-    return null;
-  }
-  let varEndIndex = jsFileContent.indexOf("}};", varStartIndex);
-  if (varEndIndex < 0) {
-    return null;
-  }
-
-  let varDeclares = jsFileContent.substring(varStartIndex, varEndIndex + 3);
-
-  if (!varDeclares) {
+  if (!variableDeclaration) {
     return null;
   }
 
   return function (signatureCipher) {
-    let params = new URLSearchParams(signatureCipher);
-    let {
-      s: signature,
-      sp: signatureParam = "signature",
-      url,
-    } = Object.fromEntries(params);
-    let decodedSignature = new Function(`
-            "use strict";
-            ${varDeclares}
-            return (${decodeFunction})("${signature}");
-        `)();
+    const { signature, signatureParam, url } =
+      parseSignatureCipherParams(signatureCipher);
+    const decodedSignature = decodeUriReadySignature({
+      variableDeclaration,
+      decodeFnText: decodeFunction,
+      signature,
+    });
 
-    return `${url}&${signatureParam}=${encodeURIComponent(decodedSignature)}`;
+    return `${url}&${signatureParam}=${decodedSignature}`;
   };
 }
