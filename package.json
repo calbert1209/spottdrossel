@@ -1,0 +1,13 @@
+{
+  "name": "yt-stream-url-hack",
+  "version": "1.0.0",
+  "description": "Based on the [youtube-stream-url](https://www.npmjs.com/package/youtube-stream-url) NPM package.",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
