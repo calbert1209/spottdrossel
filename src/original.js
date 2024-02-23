@@ -13,7 +13,7 @@ const resolvePlayerResponse = (html) => {
 
 export const getInfo = async ({ url, throwOnError = false }) => {
   let videoId = parseVideoId(url);
-  if (!videoId) return false;
+  if (!videoId) return null;
 
   try {
     const response = await fetchVideo(videoId);
@@ -26,7 +26,7 @@ export const getInfo = async ({ url, throwOnError = false }) => {
       streamingData.adaptiveFormats || []
     );
 
-    let isEncryptedVideo = !!formats.find((it) => !!it.signatureCipher);
+    let isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
 
     if (isEncryptedVideo) {
       let decoder = await buildDecoder(response.data);
@@ -61,6 +61,6 @@ export const getInfo = async ({ url, throwOnError = false }) => {
       throw e;
     }
 
-    return false;
+    return null;
   }
 };

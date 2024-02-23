@@ -11,7 +11,8 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "program": "${workspaceFolder}/src/index.js"
+      "program": "${workspaceFolder}/src/index.js",
+      "args": ["https://www.youtube.com/watch?v=7G2-FPlvY58"]
     }
   ]
 }
