@@ -1,6 +1,4 @@
 import axios from "axios";
-import M3U8FileParser from "m3u8-file-parser";
-const m3u8Parser = new M3U8FileParser();
 
 const getRemoteFile = async (url) => {
   try {
@@ -18,15 +16,6 @@ const resolvePlayerResponse = (watchHtml) => {
 
   let matches = watchHtml.match(/ytInitialPlayerResponse = (.*)}}};/);
   return matches ? matches[1] + "}}}" : "";
-};
-
-const resoleM3U8Link = (watchHtml) => {
-  if (!watchHtml) {
-    return null;
-  }
-
-  let matches = watchHtml.match(/hlsManifestUrl":"(.*\/file\/index\.m3u8)/);
-  return matches ? matches[1] : null;
 };
 
 const buildDecoder = async (watchHtml) => {
@@ -143,27 +132,11 @@ const getInfo = async ({ url, throwOnError = false }) => {
       formats: formats.filter((format) => format.url),
     };
 
-    if (result.videoDetails.isLiveContent) {
-      try {
-        let m3u8Link = resoleM3U8Link(response.data);
-        if (m3u8Link) {
-          let m3u8FileContent = await getRemoteFile(m3u8Link);
-
-          m3u8Parser.read(m3u8FileContent);
-
-          result.liveData = {
-            manifestUrl: m3u8Link,
-            data: m3u8Parser.getResult(),
-          };
-
-          m3u8Parser.reset();
-        }
-      } catch (e) {
-        if (throwOnError) {
-          throw e;
-        }
-      }
-    }
+    /* @todo for live content, need to use `m3u8-file-parser`
+     * to retrieve m3u8 link from `response.data`
+     * @see
+     * {@link https://github.com/dangdungcntt/youtube-stream-url/blob/master/src/index.js }
+     */
 
     return result;
   } catch (e) {
