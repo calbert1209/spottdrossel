@@ -1,105 +1,22 @@
-import axios from "axios";
+import { fetchVideo } from "./service/fetch.js";
+import { buildDecoder } from "./service/decoder.js";
+import { parseVideoId } from "./service/parseVideoId.js";
 
-const getRemoteFile = async (url) => {
-  try {
-    let { data } = await axios.get(url);
-    return data;
-  } catch (e) {
-    return null;
-  }
-};
-
-const resolvePlayerResponse = (watchHtml) => {
-  if (!watchHtml) {
+const resolvePlayerResponse = (html) => {
+  if (!html) {
     return "";
   }
 
-  let matches = watchHtml.match(/ytInitialPlayerResponse = (.*)}}};/);
+  let matches = html.match(/ytInitialPlayerResponse = (.*)}}};/);
   return matches ? matches[1] + "}}}" : "";
 };
 
-const buildDecoder = async (watchHtml) => {
-  if (!watchHtml) {
-    return null;
-  }
-
-  let jsFileUrlMatches = watchHtml.match(
-    /\/s\/player\/[A-Za-z0-9]+\/[A-Za-z0-9_.]+\/[A-Za-z0-9_]+\/base\.js/
-  );
-
-  if (!jsFileUrlMatches) {
-    return null;
-  }
-
-  let jsFileContent = await getRemoteFile(
-    `https://www.youtube.com${jsFileUrlMatches[0]}`
-  );
-
-  let decodeFunctionMatches = jsFileContent.match(
-    /function.*\.split\(\"\"\).*\.join\(\"\"\)}/
-  );
-
-  if (!decodeFunctionMatches) {
-    return null;
-  }
-
-  let decodeFunction = decodeFunctionMatches[0];
-
-  let varNameMatches = decodeFunction.match(/\.split\(\"\"\);([a-zA-Z0-9]+)\./);
-
-  if (!varNameMatches) {
-    return null;
-  }
-
-  let varStartIndex = jsFileContent.indexOf(`var ${varNameMatches[1]}={`);
-  if (varStartIndex < 0) {
-    return null;
-  }
-  let varEndIndex = jsFileContent.indexOf("}};", varStartIndex);
-  if (varEndIndex < 0) {
-    return null;
-  }
-
-  let varDeclares = jsFileContent.substring(varStartIndex, varEndIndex + 3);
-
-  if (!varDeclares) {
-    return null;
-  }
-
-  return function (signatureCipher) {
-    let params = new URLSearchParams(signatureCipher);
-    let {
-      s: signature,
-      sp: signatureParam = "signature",
-      url,
-    } = Object.fromEntries(params);
-    let decodedSignature = new Function(`
-            "use strict";
-            ${varDeclares}
-            return (${decodeFunction})("${signature}");
-        `)();
-
-    return `${url}&${signatureParam}=${encodeURIComponent(decodedSignature)}`;
-  };
-};
-
-const getInfo = async ({ url, throwOnError = false }) => {
-  let videoId = getVideoId({ url });
-
+export const getInfo = async ({ url, throwOnError = false }) => {
+  let videoId = parseVideoId(url);
   if (!videoId) return false;
 
-  let ytApi = "https://www.youtube.com/watch";
-
   try {
-    const response = await axios.get(ytApi, {
-      params: { v: videoId },
-    });
-
-    if (!response || response.status != 200 || !response.data) {
-      const error = new Error("Cannot get youtube video response");
-      error.response = response;
-      throw error;
-    }
+    const response = await fetchVideo(videoId);
 
     let ytInitialPlayerResponse = resolvePlayerResponse(response.data);
     let parsedResponse = JSON.parse(ytInitialPlayerResponse);
@@ -147,41 +64,3 @@ const getInfo = async ({ url, throwOnError = false }) => {
     return false;
   }
 };
-
-const getVideoId = ({ url }) => {
-  let opts = { fuzzy: true };
-
-  if (/youtu\.?be/.test(url)) {
-    // Look first for known patterns
-    let i;
-    let patterns = [
-      /youtu\.be\/([^#\&\?]{11})/, // youtu.be/<id>
-      /\?v=([^#\&\?]{11})/, // ?v=<id>
-      /\&v=([^#\&\?]{11})/, // &v=<id>
-      /embed\/([^#\&\?]{11})/, // embed/<id>
-      /\/v\/([^#\&\?]{11})/, // /v/<id>
-    ];
-
-    // If any pattern matches, return the ID
-    for (i = 0; i < patterns.length; ++i) {
-      if (patterns[i].test(url)) {
-        return patterns[i].exec(url)[1];
-      }
-    }
-
-    if (opts.fuzzy) {
-      // If that fails, break it apart by certain characters and look
-      // for the 11 character key
-      let tokens = url.split(/[\/\&\?=#\.\s]/g);
-      for (i = 0; i < tokens.length; ++i) {
-        if (/^[^#\&\?]{11}$/.test(tokens[i])) {
-          return tokens[i];
-        }
-      }
-    }
-  }
-
-  return null;
-};
-
-export { getInfo, getVideoId };

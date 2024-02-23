@@ -1,9 +1,9 @@
-import { getVideoId } from "../original.js";
+import { parseVideoId } from "../service/parseVideoId.js";
 
-describe(`${getVideoId.name}`, () => {
+describe(`${parseVideoId.name}`, () => {
   test("should provide ID", () => {
     const sampleVideoUrl = "https://www.youtube.com/watch?v=Ca93bp-jpn8";
-    const result = getVideoId({ url: sampleVideoUrl });
+    const result = parseVideoId(sampleVideoUrl);
     expect(result).toMatch("Ca93bp-jpn8");
   });
 });
