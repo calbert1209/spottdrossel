@@ -2,14 +2,14 @@ import { fetchVideo } from "./service/fetch.js";
 import { buildDecoder } from "./service/decoder.js";
 import { parseVideoId } from "./service/parseVideoId.js";
 
-const resolvePlayerResponse = (html) => {
-  if (!html) {
-    return "";
+function parsePlayerResponse(html) {
+  const matches = html.match(/ytInitialPlayerResponse = (.*)}}};/);
+  if (!matches?.[1]) {
+    return null;
   }
-
-  let matches = html.match(/ytInitialPlayerResponse = (.*)}}};/);
-  return matches ? matches[1] + "}}}" : "";
-};
+  const jsonData = `${matches[1]}\}\}\}`;
+  return JSON.parse(jsonData);
+}
 
 export const getInfo = async ({ url, throwOnError = false }) => {
   let videoId = parseVideoId(url);
@@ -17,17 +17,21 @@ export const getInfo = async ({ url, throwOnError = false }) => {
 
   try {
     const response = await fetchVideo(videoId);
+    if (!response.data) {
+      return null;
+    }
 
-    let ytInitialPlayerResponse = resolvePlayerResponse(response.data);
-    let parsedResponse = JSON.parse(ytInitialPlayerResponse);
-    let streamingData = parsedResponse.streamingData || {};
+    const parsedResponse = parsePlayerResponse(response.data);
+    if (!parsedResponse) {
+      return null;
+    }
 
-    let formats = (streamingData.formats || []).concat(
-      streamingData.adaptiveFormats || []
-    );
+    const streamingFormats = parsedResponse.streamingData?.formats ?? [];
+    const adaptiveFormats = parsedResponse.streamingData?.adaptiveFormats ?? [];
 
-    let isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
+    let formats = [...streamingFormats, ...adaptiveFormats];
 
+    const isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
     if (isEncryptedVideo) {
       let decoder = await buildDecoder(response.data);
 
@@ -44,18 +48,16 @@ export const getInfo = async ({ url, throwOnError = false }) => {
       }
     }
 
-    let result = {
-      videoDetails: parsedResponse.videoDetails || {},
-      formats: formats.filter((format) => format.url),
-    };
-
     /* @todo for live content, need to use `m3u8-file-parser`
      * to retrieve m3u8 link from `response.data`
      * @see
      * {@link https://github.com/dangdungcntt/youtube-stream-url/blob/master/src/index.js }
      */
 
-    return result;
+    return {
+      videoDetails: parsedResponse.videoDetails || {},
+      formats: formats.filter((format) => format.url),
+    };
   } catch (e) {
     if (throwOnError) {
       throw e;

@@ -62,10 +62,6 @@ export const testableFunctions = {
 };
 
 export async function buildDecoder(watchHtml) {
-  if (!watchHtml) {
-    return null;
-  }
-
   const jsFilePath = captureBaseJsPath(watchHtml);
   if (!jsFilePath) {
     return null;
