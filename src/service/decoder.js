@@ -5,28 +5,48 @@ function captureBaseJsPath(html) {
     /\/s\/player\/[A-Za-z0-9]+\/[A-Za-z0-9_.]+\/[A-Za-z0-9_]+\/base\.js/
   );
 
-  return matches?.[0] ?? null;
+  if (!matches?.[0]) {
+    throw new Error("Could not capture base JS file path");
+  }
+
+  return matches[0];
 }
 
 function findDecodeFunction(jsContent) {
   const matches = jsContent.match(/function.*\.split\(\"\"\).*\.join\(\"\"\)}/);
+  if (!matches?.[0]) {
+    throw new Error("Could not find decode function");
+  }
 
-  return matches?.[0] ?? null;
+  return matches[0];
 }
 
 function findVariableName(jsContent) {
   const matches = jsContent.match(/\.split\(\"\"\);([a-zA-Z0-9]+)\./);
-  return matches?.[1] ?? null;
+  if (!matches?.[1]) {
+    throw new Error("Could not find decode function variable name");
+  }
+
+  return matches[1];
 }
 
 function findVariableDeclaration(jsContent, variableName) {
   const startIndex = jsContent.indexOf(`var ${variableName}={`);
-  if (startIndex < 0) return null;
+  if (startIndex < 0) {
+    throw new Error("Could not find start of variable declaration");
+  }
 
   const endIndex = jsContent.indexOf("}};", startIndex);
-  if (endIndex < 0) return null;
+  if (endIndex < 0) {
+    throw new Error("Could not find end of variable declaration");
+  }
 
-  return jsContent.substring(startIndex, endIndex + 3) || null;
+  const declaration = jsContent.substring(startIndex, endIndex + 3);
+  if (!declaration) {
+    throw new Error("Could not find variable declaration");
+  }
+
+  return declaration;
 }
 
 function parseSignatureCipherParams(cipher) {
@@ -63,31 +83,14 @@ export const testableFunctions = {
 
 export async function buildDecoder(watchHtml) {
   const jsFilePath = captureBaseJsPath(watchHtml);
-  if (!jsFilePath) {
-    return null;
-  }
-
-  const jsFileContent = await fetchRemoteFile(
-    `https://www.youtube.com${jsFilePath}`
-  );
+  const jsFileContent = await fetchRemoteFile(jsFilePath);
 
   const decodeFunction = findDecodeFunction(jsFileContent);
-  if (decodeFunction === null) {
-    return null;
-  }
-
   const variableName = findVariableName(decodeFunction);
-  if (!variableName) {
-    return null;
-  }
-
   const variableDeclaration = findVariableDeclaration(
     jsFileContent,
     variableName
   );
-  if (!variableDeclaration) {
-    return null;
-  }
 
   return function (signatureCipher) {
     const { signature, signatureParam, url } =

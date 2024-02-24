@@ -31,5 +31,5 @@ export function parseVideoId(url) {
     }
   }
 
-  return null;
+  throw new Error("Could not parse video ID");
 }

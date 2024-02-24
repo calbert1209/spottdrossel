@@ -1,16 +1,18 @@
 import axios from "axios";
 
 /**
- * Fetch a remote file
+ * Fetch a remote JS file
  * @param {string} url
  * @returns Promise<any | null> promise resolves null when fetch fails
  */
-export async function fetchRemoteFile(url) {
+export async function fetchRemoteFile(fileName) {
+  const url = `https://www.youtube.com${fileName}`;
   try {
     let { data } = await axios.get(url);
     return data;
   } catch (e) {
-    return null;
+    console.debug("Could not fetch remote JS file:\n", e);
+    throw e;
   }
 }
 
@@ -27,7 +29,7 @@ export async function fetchVideo(videoId) {
   });
 
   if (!response || response.status != 200 || !response.data) {
-    const error = new Error("Cannot get youtube video response");
+    const error = new Error("Could not get youtube video response");
     error.response = response;
     throw error;
   }
