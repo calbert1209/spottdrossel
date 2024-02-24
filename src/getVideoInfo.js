@@ -21,51 +21,45 @@ async function safeBuildDecoder(responseData) {
   return null;
 }
 
-export const getVideoInfo = async ({ url, throwOnError = false }) => {
+async function decodeUrls(formats, responseData) {
+  const decoder = await safeBuildDecoder(responseData);
+  return formats.map((it) => {
+    if (it.url || !it.signatureCipher) {
+      return it;
+    }
+
+    if (decoder) {
+      it.url = decoder(it.signatureCipher);
+      delete it.signatureCipher;
+    }
+
+    return it;
+  });
+}
+
+export const getVideoInfo = async (url) => {
   let videoId = parseVideoId(url);
+  const response = await fetchVideo(videoId);
+  const parsedResponse = parsePlayerResponse(response.data);
 
-  try {
-    const response = await fetchVideo(videoId);
+  const streamingFormats = parsedResponse.streamingData?.formats ?? [];
+  const adaptiveFormats = parsedResponse.streamingData?.adaptiveFormats ?? [];
 
-    const parsedResponse = parsePlayerResponse(response.data);
+  let formats = [...streamingFormats, ...adaptiveFormats];
 
-    const streamingFormats = parsedResponse.streamingData?.formats ?? [];
-    const adaptiveFormats = parsedResponse.streamingData?.adaptiveFormats ?? [];
-
-    let formats = [...streamingFormats, ...adaptiveFormats];
-
-    const isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
-    if (isEncryptedVideo) {
-      const decoder = await safeBuildDecoder(response.data);
-      formats = formats.map((it) => {
-        if (it.url || !it.signatureCipher) {
-          return it;
-        }
-
-        if (decoder) {
-          it.url = decoder(it.signatureCipher);
-          delete it.signatureCipher;
-        }
-
-        return it;
-      });
-    }
-
-    /* @todo for live content, need to use `m3u8-file-parser`
-     * to retrieve m3u8 link from `response.data`
-     * @see
-     * {@link https://github.com/dangdungcntt/youtube-stream-url/blob/master/src/index.js }
-     */
-
-    return {
-      videoDetails: parsedResponse.videoDetails || {},
-      formats: formats.filter((format) => format.url),
-    };
-  } catch (e) {
-    if (throwOnError) {
-      throw e;
-    }
-
-    return null;
+  const isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
+  if (isEncryptedVideo) {
+    formats = decodeUrls(formats, response.data);
   }
+
+  /* @todo for live content, need to use `m3u8-file-parser`
+   * to retrieve m3u8 link from `response.data`
+   * @see
+   * {@link https://github.com/dangdungcntt/youtube-stream-url/blob/master/src/index.js }
+   */
+
+  return {
+    videoDetails: parsedResponse.videoDetails || {},
+    formats: formats.filter((format) => format.url),
+  };
 };
