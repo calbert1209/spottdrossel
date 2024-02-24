@@ -1,4 +1,4 @@
-import { getInfo } from "./original.js";
+import { getVideoInfo } from "./getVideoInfo.js";
 
 const longVideoUrl = "https://www.youtube.com/watch?v=Ca93bp-jpn8";
 const sampleVideoUrl = "https://youtu.be/Fo-z9lYJn8c?si=4Pmj3uR4txgH7eXo";
@@ -10,10 +10,14 @@ const sampleVideoUrl = "https://youtu.be/Fo-z9lYJn8c?si=4Pmj3uR4txgH7eXo";
   }
 
   const url = argv[2];
-  const result = await getInfo({ url });
-  if (result === null) {
-    console.log("Video not found.");
-    process.exit(0);
+  try {
+    const result = await getVideoInfo({ url });
+    if (result === null) {
+      console.log("Video not found.");
+      process.exit(0);
+    }
+    console.log(JSON.stringify(result, null, 2));
+  } catch (error) {
+    console.error(error);
   }
-  console.log(JSON.stringify(result, null, 2));
 })(process.argv);
