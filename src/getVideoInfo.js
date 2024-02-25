@@ -49,7 +49,7 @@ export const getVideoInfo = async (url) => {
 
   const isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
   if (isEncryptedVideo) {
-    formats = decodeUrls(formats, response.data);
+    formats = await decodeUrls(formats, response.data);
   }
 
   /* @todo for live content, need to use `m3u8-file-parser`

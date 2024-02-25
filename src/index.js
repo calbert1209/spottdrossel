@@ -11,7 +11,7 @@ const sampleVideoUrl = "https://youtu.be/Fo-z9lYJn8c?si=4Pmj3uR4txgH7eXo";
 
   const url = argv[2];
   try {
-    const result = await getVideoInfo({ url });
+    const result = await getVideoInfo(url);
     if (result === null) {
       console.log("Video not found.");
       process.exit(0);
