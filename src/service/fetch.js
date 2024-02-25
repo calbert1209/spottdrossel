@@ -1,5 +1,3 @@
-import axios from "axios";
-
 /**
  * Fetch a remote JS file
  * @param {string} url
@@ -8,7 +6,7 @@ import axios from "axios";
 export async function fetchRemoteFile(fileName) {
   const url = `https://www.youtube.com${fileName}`;
   try {
-    let { data } = await axios.get(url);
+    let { data } = await globalThis.agnosticFetch(url);
     return data;
   } catch (e) {
     console.debug("Could not fetch remote JS file:\n", e);
@@ -22,11 +20,9 @@ export async function fetchRemoteFile(fileName) {
  * @returns AxiosResponse<any, any>
  */
 export async function fetchVideo(videoId) {
-  const ytApi = "https://www.youtube.com/watch";
+  const ytApi = `https://www.youtube.com/watch?v=${videoId}`;
 
-  const response = await axios.get(ytApi, {
-    params: { v: videoId },
-  });
+  const response = await globalThis.agnosticFetch(ytApi);
 
   if (!response || response.status != 200 || !response.data) {
     const error = new Error("Could not get youtube video response");

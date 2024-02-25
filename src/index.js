@@ -1,7 +1,19 @@
 import { getVideoInfo } from "./getVideoInfo.js";
+import axios from "axios";
 
 const longVideoUrl = "https://www.youtube.com/watch?v=Ca93bp-jpn8";
 const sampleVideoUrl = "https://youtu.be/Fo-z9lYJn8c?si=4Pmj3uR4txgH7eXo";
+
+globalThis.agnosticFetch = globalThis.fetch
+  ? async (url) => {
+      const response = await globalThis.fetch(url);
+      const data = await response.text();
+      return {
+        status: response.status,
+        data,
+      };
+    }
+  : async (url) => axios.get(url);
 
 (async function main(argv) {
   if (argv.length < 3) {
