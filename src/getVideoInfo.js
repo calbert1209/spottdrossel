@@ -37,6 +37,14 @@ async function decodeUrls(formats, responseData) {
   });
 }
 
+/**
+ * Fetches information for the video stream(s) available at the provided URL
+ * @param {*} url URL of video's page
+ * @returns { {
+ *   videoDetails: any
+ *   formats: any[]
+ * } }
+ */
 export const getVideoInfo = async (url) => {
   let videoId = parseVideoId(url);
   const response = await fetchVideo(videoId);

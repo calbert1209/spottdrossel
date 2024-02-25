@@ -14,6 +14,12 @@ const COMMON_PATTERNS = [
 const TOKEN_AS_ID = new RegExp(`^${ID_PATTERN}$`);
 const TOKEN_DELIMITER = /[\/\&\?=#\.\s]/g;
 
+/**
+ *
+ * @param {string} url URL of video
+ * @returns {string} 11 character video ID
+ * @throws When a videoID cannot be found in url
+ */
 export function parseVideoId(url) {
   for (let pattern of COMMON_PATTERNS) {
     if (pattern.test(url)) {

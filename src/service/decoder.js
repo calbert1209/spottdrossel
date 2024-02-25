@@ -81,8 +81,15 @@ export const testableFunctions = {
   decodeUriReadySignature,
 };
 
-export async function buildDecoder(watchHtml) {
-  const jsFilePath = captureBaseJsPath(watchHtml);
+/**
+ * Create function to decode signature cipher based on the dynamically assigned
+ * JS decoder file linked in a video's HTML page
+ * @param {string} html contents of video's page
+ * @returns { (signatureCipher: string) => string } function to decode signature cipher
+ * as fetch-able URL with query parameters.
+ */
+export async function buildDecoder(html) {
+  const jsFilePath = captureBaseJsPath(html);
   const jsFileContent = await fetchRemoteFile(jsFilePath);
 
   const decodeFunction = findDecodeFunction(jsFileContent);
@@ -92,7 +99,7 @@ export async function buildDecoder(watchHtml) {
     variableName
   );
 
-  return function (signatureCipher) {
+  return function decode(signatureCipher) {
     const { signature, signatureParam, url } =
       parseSignatureCipherParams(signatureCipher);
     const decodedSignature = decodeUriReadySignature({
