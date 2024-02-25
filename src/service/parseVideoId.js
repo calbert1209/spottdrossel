@@ -1,34 +1,30 @@
+const ID_PATTERN = "([^#&?]{11})";
+const COMMON_PATTERNS = [
+  // youtu.be/<id>
+  `youtu\.be\/${ID_PATTERN}`,
+  // ?v=<id>
+  `\\?v=${ID_PATTERN}`,
+  // &v=<id>
+  `\\&v=${ID_PATTERN}`,
+  // embed/<id>
+  `embed\/${ID_PATTERN}`,
+  // /v/<id>
+  `\/v\/${ID_PATTERN}`,
+].map((exp) => new RegExp(exp));
+const TOKEN_AS_ID = new RegExp(`^${ID_PATTERN}$`);
+const TOKEN_DELIMITER = /[\/\&\?=#\.\s]/g;
+
 export function parseVideoId(url) {
-  let opts = { fuzzy: true };
-
-  if (/youtu\.?be/.test(url)) {
-    // Look first for known patterns
-    let i;
-    let patterns = [
-      /youtu\.be\/([^#\&\?]{11})/, // youtu.be/<id>
-      /\?v=([^#\&\?]{11})/, // ?v=<id>
-      /\&v=([^#\&\?]{11})/, // &v=<id>
-      /embed\/([^#\&\?]{11})/, // embed/<id>
-      /\/v\/([^#\&\?]{11})/, // /v/<id>
-    ];
-
-    // If any pattern matches, return the ID
-    for (i = 0; i < patterns.length; ++i) {
-      if (patterns[i].test(url)) {
-        return patterns[i].exec(url)[1];
-      }
+  for (let pattern of COMMON_PATTERNS) {
+    if (pattern.test(url)) {
+      return pattern.exec(url)[1];
     }
+  }
 
-    if (opts.fuzzy) {
-      // If that fails, break it apart by certain characters and look
-      // for the 11 character key
-      let tokens = url.split(/[\/\&\?=#\.\s]/g);
-      for (i = 0; i < tokens.length; ++i) {
-        if (/^[^#\&\?]{11}$/.test(tokens[i])) {
-          return tokens[i];
-        }
-      }
-    }
+  const tokens = url.split(TOKEN_DELIMITER);
+  const videoId = tokens.find((t) => TOKEN_AS_ID.test(t));
+  if (videoId) {
+    return videoId;
   }
 
   throw new Error("Could not parse video ID");
