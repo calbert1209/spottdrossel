@@ -1,5 +1,4 @@
 import { getVideoInfo } from "./getVideoInfo.js";
-import axios from "axios";
 
 const longVideoUrl = "https://www.youtube.com/watch?v=Ca93bp-jpn8";
 const sampleVideoUrl = "https://youtu.be/Fo-z9lYJn8c?si=4Pmj3uR4txgH7eXo";

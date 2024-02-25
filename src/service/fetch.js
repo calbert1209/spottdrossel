@@ -17,7 +17,7 @@ export async function fetchRemoteFile(fileName) {
 /**
  * fetch video from YouTube
  * @param {string} videoId
- * @returns AxiosResponse<any, any>
+ * @returns string html of video page
  */
 export async function fetchVideo(videoId) {
   const ytApi = `https://www.youtube.com/watch?v=${videoId}`;
