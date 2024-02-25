@@ -1,4 +1,6 @@
 node_modules/
 output/
 samples/
+dist/
+.parcel-cache/
 .DS_Store
