@@ -27,6 +27,8 @@ jobs:
   report:
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      statuses: write
     steps:
       - name: Report success
         uses: myrotvorets/set-commit-status-action@master
