@@ -1,13 +1,14 @@
 {
-  "name": "yt-stream-url-hack",
+  "name": "spottdrossel",
   "version": "1.0.0",
   "description": "Based on the [youtube-stream-url](https://www.npmjs.com/package/youtube-stream-url) NPM package.",
   "source": "src/getVideoInfo.js",
   "main": "dist/getVideoInfo.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "parcel build"
+    "test": "vitest run",
+    "reset": "rm -rf ./dist ./.parcel-cache",
+    "build": "reset && npx parcel build"
   },
   "keywords": [],
   "author": "",
