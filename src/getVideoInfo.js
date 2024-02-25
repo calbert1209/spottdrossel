@@ -40,7 +40,7 @@ async function decodeUrls(formats, responseData) {
 export const getVideoInfo = async (url) => {
   let videoId = parseVideoId(url);
   const response = await fetchVideo(videoId);
-  const parsedResponse = parsePlayerResponse(response.data);
+  const parsedResponse = parsePlayerResponse(response);
 
   const streamingFormats = parsedResponse.streamingData?.formats ?? [];
   const adaptiveFormats = parsedResponse.streamingData?.adaptiveFormats ?? [];
@@ -49,7 +49,7 @@ export const getVideoInfo = async (url) => {
 
   const isEncryptedVideo = formats.some((it) => !!it.signatureCipher);
   if (isEncryptedVideo) {
-    formats = await decodeUrls(formats, response.data);
+    formats = await decodeUrls(formats, response);
   }
 
   /* @todo for live content, need to use `m3u8-file-parser`
